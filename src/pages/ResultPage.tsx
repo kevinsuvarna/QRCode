@@ -10,17 +10,19 @@ import { ACCENT_STYLES } from '../components/accentStyles';
 export default function ResultPage() {
   const { cardId } = useParams();
   const location = useLocation();
-  const isCorrect = cardId === CORRECT_ANSWER;
 
+  // Hooks must run before any early `return`, so this can't use `isCorrect` below.
   useEffect(() => {
-    document.title = `${isCorrect ? 'Correct!' : 'Not correct'} · Case File`;
-  }, [isCorrect]);
+    document.title = `${cardId === CORRECT_ANSWER ? 'Correct!' : 'Not correct'} · Case File`;
+  }, [cardId]);
 
   // Keep ?debug=1 in links if (and only if) it's already in the URL.
   const home = { pathname: '/', search: location.search };
 
+  // Decision logic from CLAUDE.md section 6.
   if (!cardId || !isCardId(cardId)) return <Navigate to={home} replace />;
   const card = CARDS[cardId];
+  const isCorrect = cardId === CORRECT_ANSWER;
 
   return (
     <GameShell>

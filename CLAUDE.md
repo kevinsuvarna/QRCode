@@ -203,7 +203,156 @@ How: `src/data/icons.ts` lists every icon path, its Lucide fallback, and `AVAILA
 
 ## 9. Visual design
 
-### Palette — define in `src/index.css` with `@theme`
+The mockups in `/design` are the source of truth for all visuals:
+`design/choose-screen.jpeg`, `design/result-correct.jpeg`, `design/result-incorrect.jpeg`.
+Target viewport: **1280×831**. All pixel values below are measured at that size.
+
+Items marked **(estimated)** were sampled from the mockups, not supplied by the designer. Items marked **(PENDING)** are guesses waiting for the developer's answer — build the guess, but don't treat it as final.
+
+### Colors — define in `src/index.css` with `@theme`
+
+Designer-supplied (exact — do not change):
+
+| Token          | Hex                  | Use                                                    |
+| -------------- | -------------------- | ------------------------------------------------------ |
+| `night`        | `#0B263C`            | Page background                                        |
+| `folder-top`   | `#BDAD91`            | Folder ("Tile") gradient, top                          |
+| `folder-bottom`| `#68644B`            | Folder ("Tile") gradient, bottom                       |
+| `aqua`         | `#80FCF8`            | SCAN / NEXT / TRY AGAIN buttons                        |
+| `stamp-green`  | `#376B4B`            | "Account identified" stamp (correct)                   |
+| `stamp-red`    | `#641C21`            | "Not quite" stamp (incorrect)                          |
+
+Estimated from the mockups (confirm or replace):
+
+| Token          | Hex       | Use                                                            |
+| -------------- | --------- | -------------------------------------------------------------- |
+| `night-band`   | `#10304A` | Header band behind the stepper (estimated)                     |
+| `grid-line`    | `#15344F` | Faint background grid lines (estimated)                        |
+| `folder-edge`  | `#1A1714` | Thick rough outline of folder, notes, buttons (estimated)      |
+| `note`         | `#D8CFBA` | Note-card paper (estimated)                                    |
+| `note-glow`    | `#ECE7DC` | Lighter center of note cards (estimated)                       |
+| `type-ink`     | `#1B1F2A` | Text on paper and on aqua buttons (estimated)                  |
+| `cream`        | `#EFE8D6` | Text + dashed border on stamps; info-line text (estimated)     |
+| `pin`          | `#4A3A2C` | Small pin dot on choose-screen notes (estimated)               |
+| `pushpin`      | `#D0342C` | Red pushpin on result-screen note (estimated)                  |
+| `stepper`      | `#22D3D6` | Stepper circles, connectors, labels (estimated)                |
+
+Contrast: aim for WCAG AA. `type-ink` on paper/aqua and `cream` on the stamps pass easily. **Light text on the dark bottom of the folder gradient is only ~4:1** — keep the info line where the gradient is still light enough, or give it a subtle backing (check once real fonts are in).
+
+### Fonts
+
+| Token            | Font (designer-supplied)          | Used for                                                  |
+| ---------------- | --------------------------------- | --------------------------------------------------------- |
+| `--font-title`   | Fletcher Typewriter Bold, ALL CAPS | Folder headings: the question; result heading            |
+| `--font-button`  | Typer Pro Mono Bold               | SCAN / NEXT / TRY AGAIN; stepper numbers (estimated)      |
+| `--font-body`    | XXII HandTypeWriter               | Paragraphs, bullet list, info line, scanner status        |
+| `--font-note`    | Typewriter Revo                   | Card names on the note cards (both screens)               |
+| `--font-stamp`   | Typewriter Spool CLN Bold         | "ACCOUNT IDENTIFIED" / "NOT QUITE" stamps                 |
+
+- None of these are on Google Fonts. **(PENDING)** The developer supplies licensed `.woff2` files in `public/fonts/`, loaded with `@font-face` in `index.css` (`font-display: swap`). Until a file exists, fall back to `'Courier New', Courier, monospace`. (Section 2 still lists Fredoka/Nunito — update it when the fonts land.)
+- Stepper labels ("Call / Case / Solve") look like a plain sans-serif, not a typewriter — use `system-ui` until told otherwise **(PENDING)**.
+
+### Type scale (at 1280 wide; scale with `clamp()` below that)
+
+| Element                       | Size   | Notes                                 |
+| ----------------------------- | ------ | ------------------------------------- |
+| Choose question (h1)          | ~36px  | caps, line-height ~1.2, max 2 lines   |
+| Result heading (h1)           | ~30px  | caps, line-height ~1.2                |
+| Note-card label               | ~30px  | centered, line-height ~1.15           |
+| Body / bullets / info line    | ~22px  | line-height ~1.45, max width ~34ch    |
+| Stamp text                    | ~28px  | caps                                  |
+| Button text                   | ~34px  | caps, with a long arrow (⟶ / ⟵)       |
+| Stepper number / label        | ~16px / ~13px |                                |
+
+### Shared layout
+
+```
+┌───────────────────────────── header band (~105px, torn bottom edge) ───┐
+│                                           (1)────(2)────(3)            │
+│                                           Call   Case   Solve          │
+└────────────────────────────────────────────────────────────────────────┘
+      ┌──────────────────────── folder ~1015×528, tilted ~-1° ──────┐
+      │  (content — see each screen)                                │
+      │                                                             │
+      │                                        ┌─────────────────┐  │
+      └────────────────────────────────────────┤  BUTTON  ⟶      ├──┘
+                                               └─────────────────┘
+```
+
+- **Page**: `night` background + faint square grid of 1px `grid-line` lines, ~64px cells (CSS gradients, no images).
+- **Header band**: full width, ~105px tall, `night-band`, torn/uneven bottom edge. **No "CASE FILE #01" text or case-file icon** — the mockups don't show one **(PENDING)**.
+- **Stepper** (top-right, ~70px from the right edge): 3 circles ~36px, `stepper` fill, ~3px dark ring, dark number; ~80px × 3px connectors; label ~13px below each. All three look identical in the mockups. Guess: decorative (not interactive), step 3 "Solve" is current on both screens, marked with `aria-current="step"` **(PENDING)**.
+- **Folder** (the designer's "Tile"): x ≈ 145–1160, y ≈ 190–718 at 1280×831 (~79% of the width, slightly right of center). Rotated ~-1°. Vertical gradient `folder-top` → `folder-bottom`, subtle paper grain, ~5px rough `folder-edge` outline, ~16px corner radius. Inner padding ~52px left, ~65px top.
+- **Action button** (`GameButton`): `aqua` fill, ~260×80 (TRY AGAIN ~280 wide), ~28px radius (pill-like), rotated ~-2°, rough ~3px `folder-edge` outline, soft aqua glow, `type-ink` text. Placed straddling the folder's bottom edge (half inside, half outside), ~70px in from the folder's right edge. No 3D bottom edge; on press translate down ~2px and dim the glow. Visible focus ring. Minimum 48px tall.
+- **Rough / torn edges and paper grain**: CSS + one inline SVG filter (`feTurbulence` + `feDisplacementMap`) — no image files **(PENDING)**.
+- **Tilts** are fixed decoration (not animation), so they stay on with reduced motion.
+
+### Components
+
+- **NoteCard** (replaces `OptionTile`): `note` paper with a `note-glow` radial center, rough dotted edge, ~215×190. Each note has its own small fixed tilt (about -1°, +1°, -0.5°, +1.5°) and vertical offset (±10px). **No icon.** Label in `--font-note`, ~30px, `type-ink`. Choose screen: small `pin` dot (~12px) at top-left. Result screen: red pushpin (~30px) at top-left.
+  In debug mode (`?debug=1`) the note is a real `<button>` with a small lift on hover; otherwise display-only.
+- **Stamp**: rounded rect (~14px radius), rotated ~-8°, darker vignette toward the edges, cream dashed inner border (~2px, inset ~10px), `cream` text in `--font-stamp`. Correct: `stamp-green`, "✓ ACCOUNT IDENTIFIED" (~370×105). Incorrect: `stamp-red`, "✕ NOT QUITE" (~290×105). Overlaps the folder's top-left corner. It is a label, not a button (the notes call it a "button"/"pill" — it has no action).
+- **Info line** (replaces the `CameraPrompt` panel): navy (`night`) circle ~34px with a 2px white ring and a white "i", then "Scan the card in the file" in `--font-body`, `cream`, ~22px. Bottom-left of the folder. Scanner status (starting / waiting-for-lift / scanning / denied / no-camera — same messages as before) shows as a smaller line under it, in an `aria-live="polite"` region; error messages in `stamp-red` on a `cream` backing **(PENDING)**.
+- **GameShell**: header band + stepper, `<main>` holding the folder.
+
+### Screen 1 — Choose (`/`)
+
+```
+      ┌─────────────────────────────────────────────────────────────┐
+      │  WHAT TYPE OF BANK ACCOUNT DOES ANANYA                      │
+      │  HAVE?                                                      │
+      │  ┌───────┐ ┌───────┐ ┌───────┐ ┌───────┐                    │
+      │  │•      │ │•      │ │•      │ │•      │   (4 notes, tilted)│
+      │  │Savings│ │ Fixed │ │Recurr.│ │Current│                    │
+      │  │Account│ │Deposit│ │Deposit│ │Account│                    │
+      │  └───────┘ └───────┘ └───────┘ └───────┘                    │
+      │  (i) Scan the card in the file                              │
+      │      ● Scanning…                       ┌─────────────────┐  │
+      └────────────────────────────────────────┤   SCAN  ⟶       ├──┘
+                                               └─────────────────┘
+```
+
+- h1 = the case question (caps via CSS). Text lives in `cards.ts`, not JSX **(PENDING — needs a new field, see section 4)**.
+- Notes: one row of 4, ~15–20px gaps, starting ~45px below the question. 2×2 below `lg`.
+- Note labels use the card titles from `cards.ts` ("Savings Account", "Fixed Deposit", …). The mockup's "Fixed Deposit Account" / "Reccuring Deposit Account" wording and its typo are **not** copied **(PENDING)**.
+- **SCAN ⟶ button** **(PENDING — behavior)**: scanning is currently automatic. Guess: SCAN is a real button that turns the camera on; status starts as "Press SCAN, then place your card".
+
+### Screen 2 — Result (`/result/:cardId`)
+
+```
+ ┌──────────────────────┐
+ │ ✓ ACCOUNT IDENTIFIED │  (stamp, tilted, overlapping the corner)
+ └───┬──────────────────┴──────────────────────────────────────┐
+     │                         YES; IT'S A SAVINGS ACCOUNT!    │
+     │   📌┌─────────┐          Ananya uses her account to …   │
+     │     │ Savings │                                         │
+     │     │ Account │          A savings account lets her:    │
+     │     └─────────┘            • Put money in               │
+     │                            • Keep it safe  …            │
+     │                                      ┌──────────────┐   │
+     └──────────────────────────────────────┤  NEXT  ⟶     ├───┘
+                                            └──────────────┘
+```
+
+- Two columns inside the folder: left ~40% (pinned note of the scanned card, vertically centered), right ~60% (text, starting ~430px into the folder, top ~80px below the folder top). Stack vertically below `lg`.
+- **Correct**: `stamp-green` stamp "✓ ACCOUNT IDENTIFIED"; h1 "YES; IT'S A SAVINGS ACCOUNT!"; paragraph; "A savings account lets her:" + bullet list; **NEXT ⟶ only** → `NEXT_ROUTE`. The old Go Back button is removed **(PENDING)**.
+- **Incorrect**: `stamp-red` stamp "✕ NOT QUITE"; h1 "A <CARD TITLE> IS USED WHEN..."; paragraph about that account; paragraph about Ananya; **⟵ TRY AGAIN** (aqua, arrow on the left) → `/`. The old "Good try!" line and the coral colour are removed.
+- No card icon on this screen.
+- All result copy is case-specific and lives in `cards.ts` **(PENDING — new fields in section 4; mockups only give text for Savings and Current Account, the others must be written and approved)**.
+
+### Motion
+
+- Choose screen: notes drop in (fade + small fall) on mount, staggered ~60ms each.
+- Result screen: folder fades/scales 0.96 → 1; the stamp "thunks" in shortly after (scale ~1.3 → 1 + fade, ~250ms). Incorrect: the folder also does one short horizontal shake (~400ms).
+- All animations are CSS keyframes in `index.css`, wrapped in `@media (prefers-reduced-motion: no-preference)`. No animation libraries. (Static tilts are not animations and always show.)
+
+### Responsive
+
+- Must work without scrolling on the Choose screen at 1920×1080 and on a 13" laptop (~1280×650 visible): the folder and type scale down with `clamp()`/viewport units so the header + folder + overlapping button fit.
+- Below `lg`: notes 2×2, result columns stack, stamp sits above the folder content, button sits below the content instead of straddling the edge.
+
+<!-- Previous design (archived — replaced by the mockups above): -->
+<!-- ### Palette — define in `src/index.css` with `@theme`
 
 | Token        | Hex       | Use                                     |
 | ------------ | --------- | --------------------------------------- |
@@ -289,7 +438,7 @@ One large centered card (max-width ~640px) on the same shell.
 - Choose screen: tiles fade up on mount, staggered ~60ms each.
 - Result screen: card scales from 0.9 → 1 with fade. Not-correct variant also does a short horizontal shake (~400ms) once.
 - All animations are CSS keyframes in `index.css`. Wrap them in `@media (prefers-reduced-motion: no-preference)`.
-- No animation libraries.
+- No animation libraries. -->
 
 ## 10. Accessibility and quality rules
 
@@ -297,7 +446,7 @@ One large centered card (max-width ~640px) on the same shell.
 - All interactive elements keyboard-focusable with a visible focus ring.
 - Set `document.title` per page ("What will you choose? · Case File", "Correct! · Case File", etc.).
 - Works on a 1080p classroom display and a 13" laptop without scrolling on the Choose screen.
-- No console errors or warnings in dev.
+- No console errors or warnings in dev. Two known warnings from inside `qr-scanner` are accepted (the developer approved them): "The camera stream is only accessible if the page is transferred via https" (shows on `http://localhost` only, not on Vercel) and the browser's Canvas2D "willReadFrequently" performance hint. Don't hack around them.
 - `npm run lint` and `npm run build` must pass with zero errors before any task is considered done.
 
 ## 11. Commands
