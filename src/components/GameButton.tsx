@@ -1,44 +1,48 @@
 import type { ReactNode } from 'react';
 import { Link, type To } from 'react-router-dom';
-import type { IconPath } from '../data/icons';
 import AppIcon from './AppIcon';
 
 type GameButtonProps = {
-  to: To;
-  variant: 'primary' | 'secondary' | 'danger';
-  iconLeft?: IconPath;
-  iconRight?: IconPath;
+  // Where the button goes. Leave it out for a display-only button (see SCAN on the
+  // Choose screen, whose behavior isn't decided yet).
+  to?: To;
+  arrow?: 'left' | 'right';
+  className?: string; // position, set by the page
   children: ReactNode;
 };
 
-// The 6px darker "bottom edge" is drawn with a box-shadow rather than a border, so
-// pressing the button (edge shrinks to 2px, button moves down 4px) doesn't change its
-// size and nudge the buttons next to it.
-const VARIANT_STYLES: Record<GameButtonProps['variant'], string> = {
-  primary:
-    'bg-mint text-ink shadow-[0_6px_0_var(--color-mint-deep)] active:shadow-[0_2px_0_var(--color-mint-deep)]',
-  secondary:
-    'border-2 border-snow/70 bg-panel text-snow shadow-[0_6px_0_var(--color-panel-edge)] active:shadow-[0_2px_0_var(--color-panel-edge)]',
-  danger:
-    'bg-coral text-ink shadow-[0_6px_0_var(--color-coral-deep)] active:shadow-[0_2px_0_var(--color-coral-deep)]',
-};
+// The glowing aqua "SCAN / NEXT / TRY AGAIN" button from the mockups.
+export default function GameButton({ to, arrow, className = '', children }: GameButtonProps) {
+  const content = (
+    <>
+      {/* Button surface, kept separate so the rough-edge filter doesn't blur the text. */}
+      <span
+        aria-hidden="true"
+        className="paper-button rough-edge absolute inset-0 rounded-[1.75rem] border-[3px] border-folder-edge"
+      />
+      <span className="relative inline-flex items-center gap-3">
+        {arrow === 'left' && <AppIcon path="/icons/arrow-left.svg" className="h-10 w-10" />}
+        {children}
+        {arrow === 'right' && <AppIcon path="/icons/arrow-right.svg" className="h-10 w-10" />}
+      </span>
+    </>
+  );
+  const buttonClass = `relative inline-flex h-[5rem] min-w-[16rem] items-center justify-center px-6 font-button text-[2.25rem] font-bold uppercase text-type-ink -rotate-[1.5deg] ${className}`;
 
-// Chunky arcade-style button. It navigates, so it renders a <Link>.
-export default function GameButton({
-  to,
-  variant,
-  iconLeft,
-  iconRight,
-  children,
-}: GameButtonProps) {
+  if (!to) {
+    return (
+      <div aria-hidden="true" className={buttonClass}>
+        {content}
+      </div>
+    );
+  }
+
   return (
     <Link
       to={to}
-      className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-xl px-6 py-3 font-display text-xl font-semibold transition-[translate,box-shadow] duration-75 focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-gold active:translate-y-1 ${VARIANT_STYLES[variant]}`}
+      className={`${buttonClass} transition-[translate] duration-75 focus-visible:outline-4 focus-visible:outline-offset-4 focus-visible:outline-aqua active:translate-y-0.5`}
     >
-      {iconLeft && <AppIcon path={iconLeft} className="h-6 w-6" />}
-      {children}
-      {iconRight && <AppIcon path={iconRight} className="h-6 w-6" />}
+      {content}
     </Link>
   );
 }

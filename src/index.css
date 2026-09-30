@@ -1,53 +1,151 @@
 @import 'tailwindcss';
 
 @theme {
-  /* Palette from CLAUDE.md section 9 */
-  --color-ink: #1e1b4b;
-  --color-panel: #2a2760;
-  --color-panel-edge: #3b3785;
-  --color-mint: #5eead4;
-  --color-gold: #fde047;
-  --color-sky: #7dd3fc;
-  --color-lilac: #c4b5fd;
-  --color-coral: #fb7185;
-  --color-snow: #f8fafc;
+  /* ---- Mockup design (CLAUDE.md section 9) ---- */
+  /* Designer-supplied, exact */
+  --color-night: #0b263c;
+  --color-folder-top: #bdad91;
+  --color-folder-bottom: #68644b;
+  --color-aqua: #80fcf8;
+  --color-stamp-green: #376b4b;
+  --color-stamp-red: #641c21;
+  /* Estimated from the mockups */
+  --color-night-band: #10304a;
+  --color-grid-line: #15344f;
+  --color-folder-edge: #1a1714;
+  --color-note: #d8cfba;
+  --color-note-glow: #ece7dc;
+  --color-type-ink: #1b1f2a;
+  --color-cream: #efe8d6;
+  --color-pin: #4a3a2c;
+  --color-pushpin: #d0342c;
+  --color-stepper: #22d3d6;
 
-  /* Darker shades for the chunky 6px "game button" bottom edge */
-  --color-mint-deep: color-mix(in oklab, var(--color-mint) 55%, black);
-  --color-gold-deep: color-mix(in oklab, var(--color-gold) 55%, black);
-  --color-sky-deep: color-mix(in oklab, var(--color-sky) 55%, black);
-  --color-lilac-deep: color-mix(in oklab, var(--color-lilac) 55%, black);
-  --color-coral-deep: color-mix(in oklab, var(--color-coral) 55%, black);
-
-  --font-display: 'Fredoka', system-ui, sans-serif;
-  --font-body: 'Nunito', system-ui, sans-serif;
+  /* Designer-chosen fonts. They aren't loaded yet (no font files supplied), so the
+     browser uses Courier New unless the font happens to be installed on the computer. */
+  --font-title: 'Fletcher Typewriter', 'Courier New', Courier, monospace;
+  --font-button: 'Typer Pro Mono', 'Courier New', Courier, monospace;
+  --font-body: 'XXII HandTypeWriter', 'Courier New', Courier, monospace;
+  --font-note: 'Typewriter Revo', 'Courier New', Courier, monospace;
+  --font-stamp: 'Typewriter Spool CLN', 'Courier New', Courier, monospace;
+  --color-snow: #f8fafc; /* white ring + "i" of the info icon (estimated) */
 }
 
 @layer base {
+  /* On large screens the whole layout scales with the window, like a game screen.
+     Tailwind sizes are in rem, and 1rem = 16px exactly at the mockup size (1280×831),
+     so mockup pixel values can be copied as px ÷ 16. Whichever of width or height is
+     tighter wins, so the page never needs to scroll. */
+  @media (min-width: 1024px) {
+    html {
+      font-size: min(100vw / 80, 100vh / 51.9375);
+    }
+  }
+
   body {
-    background-color: var(--color-ink);
-    color: var(--color-snow);
+    background-color: var(--color-night);
+    color: var(--color-cream);
     font-family: var(--font-body);
   }
 }
 
-/* "Game map" background: a soft glow at the top plus a faint dotted grid. CSS only. */
-.game-bg {
-  background-color: var(--color-ink);
+/* Page background: night blue with a faint square grid (CSS only, no images). */
+.page-bg {
+  background-color: var(--color-night);
   background-image:
-    radial-gradient(
-      ellipse 80% 60% at 50% 0%,
-      color-mix(in oklab, var(--color-lilac) 16%, transparent),
-      transparent 70%
-    ),
-    radial-gradient(
-      circle,
-      color-mix(in oklab, var(--color-snow) 10%, transparent) 1px,
-      transparent 1.5px
-    );
-  background-size:
-    100% 100%,
-    24px 24px;
+    linear-gradient(var(--color-grid-line) 1px, transparent 1px),
+    linear-gradient(90deg, var(--color-grid-line) 1px, transparent 1px);
+  background-size: 4rem 4rem;
+}
+
+/* ---- Paper surfaces ----
+   Each paper surface is its own layer behind the content, so the rough-edge SVG filter
+   (defined in GameShell) wobbles the edges without also wobbling the text on top. */
+
+.rough-edge {
+  filter: url(#rough-edge);
+}
+
+.torn-edge {
+  filter: url(#torn-edge);
+}
+
+/* Faint paper grain, drawn with an SVG noise pattern embedded right here in the CSS. */
+.paper-grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0.35 0'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+  mix-blend-mode: multiply;
+  opacity: 0.35;
+  pointer-events: none;
+}
+
+/* The mockup keeps the paper light through the notes and darkens toward the bottom, so
+   the top color is held until 45% before blending to the bottom color. */
+.paper-folder {
+  background: linear-gradient(
+    to bottom,
+    var(--color-folder-top) 0%,
+    var(--color-folder-top) 45%,
+    var(--color-folder-bottom) 100%
+  );
+}
+
+.paper-note {
+  background: radial-gradient(
+    ellipse 70% 65% at 50% 55%,
+    var(--color-note-glow),
+    var(--color-note) 75%
+  );
+}
+
+.paper-button {
+  background: radial-gradient(
+    ellipse 75% 70% at 50% 45%,
+    color-mix(in oklab, var(--color-aqua) 70%, white),
+    var(--color-aqua) 55%,
+    color-mix(in oklab, var(--color-aqua) 80%, black)
+  );
+  box-shadow: 0 0 1.25rem color-mix(in oklab, var(--color-aqua) 55%, transparent);
+}
+
+/* Rubber-stamp badges on the Result screen: lighter in the middle, darker at the edges. */
+.stamp-surface-green {
+  background: radial-gradient(
+    ellipse 70% 75% at 50% 50%,
+    color-mix(in oklab, var(--color-stamp-green) 85%, white),
+    var(--color-stamp-green) 55%,
+    color-mix(in oklab, var(--color-stamp-green) 70%, black)
+  );
+}
+
+.stamp-surface-red {
+  background: radial-gradient(
+    ellipse 70% 75% at 50% 50%,
+    color-mix(in oklab, var(--color-stamp-red) 80%, white),
+    var(--color-stamp-red) 55%,
+    color-mix(in oklab, var(--color-stamp-red) 70%, black)
+  );
+}
+
+/* ---- Animations ---- */
+
+/* The stamp lands like a rubber stamp: big and invisible, then slams down. */
+@keyframes stamp-in {
+  from {
+    opacity: 0;
+    transform: scale(1.4);
+  }
+  60% {
+    opacity: 1;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
 }
 
 @keyframes fade-up {
@@ -99,9 +197,11 @@
   }
 }
 
-/* Animations only run for people who haven't asked their device to reduce motion. */
+/* Animations only run for people who haven't asked their device to reduce motion.
+   (The notes' fixed tilts use the separate `rotate` property, not `transform`, so they
+   stay put while these animations run.) */
 @media (prefers-reduced-motion: no-preference) {
-  /* `both` keeps a staggered tile invisible until its delay has passed. */
+  /* `both` keeps a staggered note invisible until its delay has passed. */
   .animate-fade-up {
     animation: fade-up 450ms ease-out both;
   }
@@ -115,6 +215,11 @@
     animation:
       pop-in 300ms ease-out both,
       shake 400ms ease-in-out 300ms;
+  }
+
+  /* Starts after the folder has popped in. */
+  .animate-stamp-in {
+    animation: stamp-in 350ms ease-out 250ms both;
   }
 
   .animate-soft-pulse {

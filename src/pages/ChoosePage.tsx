@@ -1,8 +1,10 @@
 import { useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { CARD_ORDER, CARDS, type CardId } from '../data/cards';
+import { CARD_ORDER, CARDS, CASE_QUESTION, type CardId } from '../data/cards';
 import { useQrScanner } from '../hooks/useQrScanner';
 import CameraPrompt from '../components/CameraPrompt';
+import CaseFolder from '../components/CaseFolder';
+import GameButton from '../components/GameButton';
 import GameShell from '../components/GameShell';
 import OptionTile from '../components/OptionTile';
 
@@ -13,9 +15,10 @@ export default function ChoosePage() {
   const isDebug = new URLSearchParams(location.search).get('debug') === '1';
 
   useEffect(() => {
-    document.title = 'What will you choose? · Case File';
+    document.title = `${CASE_QUESTION} · Case File`;
   }, []);
 
+  // The hook only calls this with a valid card ID (anything else is ignored).
   // `search` carries ?debug=1 along to the result page (if it was there).
   function goToResult(cardId: CardId) {
     navigate({ pathname: `/result/${cardId}`, search: location.search });
@@ -25,13 +28,14 @@ export default function ChoosePage() {
 
   return (
     <GameShell>
-      <div className="flex w-full flex-1 flex-col">
-        <div className="flex flex-1 flex-col items-center justify-center">
-          <h1 className="text-center font-display text-[clamp(2.5rem,5vw,4rem)] leading-tight font-bold">
-            What will you <span className="text-gold">choose</span>?
+      {/* Sizes/positions at lg+ are copied from the 1280×831 mockup (px ÷ 16 = rem). */}
+      <CaseFolder>
+        <div className="relative px-5 pt-6 pb-8 lg:px-[3.25rem] lg:pt-[3.5rem] lg:pb-0">
+          <h1 className="max-w-[54rem] font-title text-[1.75rem] leading-[1.1] font-bold text-type-ink uppercase lg:text-[2.375rem]">
+            {CASE_QUESTION}
           </h1>
 
-          <ul className="mt-8 grid w-full max-w-6xl grid-cols-2 gap-4 sm:gap-6 lg:grid-cols-4">
+          <ul className="mt-8 grid grid-cols-2 gap-4 lg:mt-[2.25rem] lg:grid-cols-4">
             {CARD_ORDER.map((cardId, index) => (
               <li key={cardId}>
                 <OptionTile
@@ -42,14 +46,18 @@ export default function ChoosePage() {
               </li>
             ))}
           </ul>
+
+          <div className="mt-8 lg:mt-[3.75rem]">
+            <CameraPrompt status={status} />
+          </div>
         </div>
 
-        {/* Below the tiles on small screens; bottom-right on large ones. It stays in the
-            normal page flow (instead of position: fixed) so it can never cover a tile. */}
-        <div className="mt-8 flex justify-center lg:justify-end">
-          <CameraPrompt status={status} />
+        {/* SCAN straddles the folder's bottom edge on large screens. It's display-only
+            for now: scanning is automatic (CLAUDE.md section 9, PENDING). */}
+        <div className="flex justify-center pb-6 lg:absolute lg:right-[4.4rem] lg:-bottom-6 lg:pb-0">
+          <GameButton arrow="right">Scan</GameButton>
         </div>
-      </div>
+      </CaseFolder>
 
       {/* The camera feed must be in the page but invisible. Don't use display:none —
           some browsers stop sending video frames to hidden elements. */}

@@ -17,16 +17,16 @@ The developer is a new programmer. Prefer clear, boring, well-named code over cl
 
 ## 2. Tech stack
 
-| Piece       | Choice                                                                                | Notes                                                  |
-| ----------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------ |
-| Framework   | React + TypeScript + Vite                                                             | `strict: true` in tsconfig, no `any`                   |
-| Routing     | `react-router-dom`                                                                    | Two routes only                                        |
-| Styling     | Tailwind CSS v4 via `@tailwindcss/vite`                                               | Theme tokens defined with `@theme` in `src/index.css`  |
-| QR scanning | `qr-scanner` (Nimiq)                                                                  | Runs in a web worker; works with a hidden `<video>`    |
-| UI icons    | `lucide-react`                                                                        | Fallback for any UI icon the developer hasn't supplied |
-| Fonts       | Google Fonts: **Fredoka** (headings, buttons, tile labels) and **Nunito** (body text) | Loaded in `index.html` with `preconnect`               |
-| Lint/format | ESLint + Prettier                                                                     | Scripts: `npm run lint`, `npm run format`              |
-| Deploy      | Vercel (auto-deploys from GitHub; `vercel.json` rewrites all paths to `index.html`)   | **Camera access only works over HTTPS or `localhost`** |
+| Piece       | Choice                                                                              | Notes                                                    |
+| ----------- | ----------------------------------------------------------------------------------- | -------------------------------------------------------- |
+| Framework   | React + TypeScript + Vite                                                           | `strict: true` in tsconfig, no `any`                     |
+| Routing     | `react-router-dom`                                                                  | Two routes only                                          |
+| Styling     | Tailwind CSS v4 via `@tailwindcss/vite`                                             | Theme tokens defined with `@theme` in `src/index.css`    |
+| QR scanning | `qr-scanner` (Nimiq)                                                                | Runs in a web worker; works with a hidden `<video>`      |
+| UI icons    | `lucide-react`                                                                      | Fallback for any UI icon the developer hasn't supplied   |
+| Fonts       | Designer typewriter fonts (see section 9) via `@font-face` from `public/fonts/`     | Files not supplied yet — Courier New fallback until then |
+| Lint/format | ESLint + Prettier                                                                   | Scripts: `npm run lint`, `npm run format`                |
+| Deploy      | Vercel (auto-deploys from GitHub; `vercel.json` rewrites all paths to `index.html`) | **Camera access only works over HTTPS or `localhost`**   |
 
 Do NOT add: Redux/Zustand or any state library, a backend, a database, CSS-in-JS, UI component libraries (MUI, Chakra, etc.).
 
@@ -47,7 +47,9 @@ src/
     ChoosePage.tsx        # Screen 1
     ResultPage.tsx        # Screen 2 (correct + incorrect variants)
   components/
-    GameShell.tsx         # shared page background + header
+    GameShell.tsx         # shared page background + header band + SVG edge filters
+    CaseStepper.tsx       # "1 Call — 2 Case — 3 Solve" tracker in the header
+    CaseFolder.tsx        # tilted manila folder that holds each screen's content
     OptionTile.tsx        # one option tile
     CameraPrompt.tsx      # "place your card" panel + scanner status
     GameButton.tsx        # chunky game-style button (primary/secondary/danger)
@@ -128,6 +130,8 @@ export function isCardId(value: string): value is CardId {
 - Anything scanned that isn't a valid `CardId` is **silently ignored** (no navigation, no error popup).
 - Scanned values must be `.trim()`-ed before checking.
 - Generate locally: `npx qrcode -o qr-savings.png "savings-account"` (repeat per card). Print at least 3 cm square with a white border.
+- All four at once into `qr-codes/` (PowerShell), 600 px wide with a 4-module white border:
+  `New-Item -ItemType Directory -Force qr-codes; foreach ($id in 'savings-account','fixed-deposit','recurring-deposit','current-account') { npx --yes qrcode -e M -w 600 -q 4 -o "qr-codes/$id.png" $id }`
 
 ## 6. Routing and the decision logic
 
@@ -153,7 +157,8 @@ Requirements:
 - Returns `{ videoRef, status }` where `status` is `'starting' | 'waiting-for-lift' | 'ready' | 'denied' | 'no-camera'`.
 - Creates the `QrScanner` when the component mounts; calls `scanner.stop()` and `scanner.destroy()` on unmount so the camera light turns off when leaving the Choose screen. Returning to `/` restarts it. The Result screen has no camera — the student must press a button to scan again.
 - Stores the `onScan` callback in a ref so a new callback identity does **not** restart the camera. The effect runs once per mount.
-- **Wait for the lift** (replaces the old "ignore the same value for 2000 ms" rule): a card is only accepted after the camera has seen no card for `LIFT_MS` (800 ms), counted from when the camera started. So a card left under the camera after Try Again / Go Back is ignored (status `'waiting-for-lift'`, "Lift your card off, then place it again.") until it's lifted and placed again.
+- Optional second argument `onRawScan(value)` (for debugging): called with every trimmed value the camera reads, valid or not, with a **2000 ms duplicate cooldown** (the same value is reported at most once per 2 s). Used by the temporary dev-only page `/dev/scanner` (`pages/DevScannerPage.tsx`), which shows the status, the accepted card, and the last 5 raw values — never the video. Remove that page and route once the scanner is trusted.
+- **Wait for the lift** (decides when a card is _accepted_; the 2000 ms cooldown above only affects `onRawScan`): a card is only accepted after the camera has seen no card for `LIFT_MS` (800 ms), counted from when the camera started. So a card left under the camera after Try Again / Go Back is ignored (status `'waiting-for-lift'`, "Lift your card off, then place it again.") until it's lifted and placed again.
 - Once a valid card is detected and navigation fires, stop reacting to further scans on that page.
 - Options: `returnDetailedScanResult: true`, `preferredCamera: 'environment'`, `maxScansPerSecond: 10`.
 - Camera choice: `PREFERRED_CAMERA_LABEL` in the hook. Empty = browser default (laptop webcam). Set it to part of a camera's name (e.g. a USB document camera) to use that one instead.
@@ -182,22 +187,20 @@ Debug mode is only ever turned on by typing `?debug=1` yourself. If it's in the 
 
 ## 8. Icons (supplied by the developer in `public/icons/`)
 
-| File                | Used in                             |
-| ------------------- | ----------------------------------- |
-| `savings.svg`       | Savings tile, result page           |
-| `fixed-deposit.svg` | Fixed deposit tile, result page     |
-| `recurring.svg`     | Recurring deposit tile, result page |
-| `current.svg`       | Current account tile, result page   |
-| `camera.svg`        | Camera prompt panel                 |
-| `case-file.svg`     | Header on both screens              |
-| `check.svg`         | "Correct!" badge                    |
-| `cross.svg`         | "Not correct" badge                 |
-| `arrow-right.svg`   | Go Next button                      |
-| `arrow-left.svg`    | Go Back button                      |
-| `refresh.svg`       | Try Again button                    |
-| `favicon.svg`       | Browser tab                         |
+| File                | Used in                                      |
+| ------------------- | -------------------------------------------- |
+| File                | Used in                                      | Lucide fallback |
+| ------------------- | -------------------------------------------- | --------------- |
+| `check.svg`         | "✓ ACCOUNT IDENTIFIED" stamp                 | Check           |
+| `cross.svg`         | "✕ NOT QUITE" stamp                          | X               |
+| `arrow-right.svg`   | SCAN and NEXT buttons (long arrow)           | MoveRight       |
+| `arrow-left.svg`    | TRY AGAIN button (long arrow)                | MoveLeft        |
+| `pushpin.svg`       | Red pushpin on the Result screen's note      | Pin             |
+| `favicon.svg`       | Browser tab (placeholder included)           | —               |
 
-Until a file exists, use a `lucide-react` equivalent (PiggyBank, Lock, Repeat, Briefcase, Camera, FolderSearch, CircleCheck, CircleX, ArrowRight, ArrowLeft, RotateCcw). Never commit broken `<img>` paths — if an icon file is missing, fall back to the Lucide icon.
+Not used by the mockup design (kept in `icons.ts` in case they come back): `savings.svg`, `fixed-deposit.svg`, `recurring.svg`, `current.svg` (PiggyBank, Lock, Repeat, Briefcase), `camera.svg` (Camera), `case-file.svg` (FolderSearch), `refresh.svg` (RotateCcw).
+
+Until a file exists, the Lucide fallback is shown. Never commit broken `<img>` paths — if an icon file is missing, fall back to the Lucide icon.
 
 How: `src/data/icons.ts` lists every icon path, its Lucide fallback, and `AVAILABLE_ICON_FILES`. After adding a file to `public/icons/`, add its path to `AVAILABLE_ICON_FILES`; `components/AppIcon.tsx` then shows the file instead of the fallback. (`favicon.svg` is referenced directly from `index.html`; a placeholder is included.) All decorative icons get `alt=""` / `aria-hidden="true"`.
 
@@ -213,56 +216,56 @@ Items marked **(estimated)** were sampled from the mockups, not supplied by the 
 
 Designer-supplied (exact — do not change):
 
-| Token          | Hex                  | Use                                                    |
-| -------------- | -------------------- | ------------------------------------------------------ |
-| `night`        | `#0B263C`            | Page background                                        |
-| `folder-top`   | `#BDAD91`            | Folder ("Tile") gradient, top                          |
-| `folder-bottom`| `#68644B`            | Folder ("Tile") gradient, bottom                       |
-| `aqua`         | `#80FCF8`            | SCAN / NEXT / TRY AGAIN buttons                        |
-| `stamp-green`  | `#376B4B`            | "Account identified" stamp (correct)                   |
-| `stamp-red`    | `#641C21`            | "Not quite" stamp (incorrect)                          |
+| Token           | Hex       | Use                                  |
+| --------------- | --------- | ------------------------------------ |
+| `night`         | `#0B263C` | Page background                      |
+| `folder-top`    | `#BDAD91` | Folder ("Tile") gradient, top        |
+| `folder-bottom` | `#68644B` | Folder ("Tile") gradient, bottom     |
+| `aqua`          | `#80FCF8` | SCAN / NEXT / TRY AGAIN buttons      |
+| `stamp-green`   | `#376B4B` | "Account identified" stamp (correct) |
+| `stamp-red`     | `#641C21` | "Not quite" stamp (incorrect)        |
 
 Estimated from the mockups (confirm or replace):
 
-| Token          | Hex       | Use                                                            |
-| -------------- | --------- | -------------------------------------------------------------- |
-| `night-band`   | `#10304A` | Header band behind the stepper (estimated)                     |
-| `grid-line`    | `#15344F` | Faint background grid lines (estimated)                        |
-| `folder-edge`  | `#1A1714` | Thick rough outline of folder, notes, buttons (estimated)      |
-| `note`         | `#D8CFBA` | Note-card paper (estimated)                                    |
-| `note-glow`    | `#ECE7DC` | Lighter center of note cards (estimated)                       |
-| `type-ink`     | `#1B1F2A` | Text on paper and on aqua buttons (estimated)                  |
-| `cream`        | `#EFE8D6` | Text + dashed border on stamps; info-line text (estimated)     |
-| `pin`          | `#4A3A2C` | Small pin dot on choose-screen notes (estimated)               |
-| `pushpin`      | `#D0342C` | Red pushpin on result-screen note (estimated)                  |
-| `stepper`      | `#22D3D6` | Stepper circles, connectors, labels (estimated)                |
+| Token         | Hex       | Use                                                        |
+| ------------- | --------- | ---------------------------------------------------------- |
+| `night-band`  | `#10304A` | Header band behind the stepper (estimated)                 |
+| `grid-line`   | `#15344F` | Faint background grid lines (estimated)                    |
+| `folder-edge` | `#1A1714` | Thick rough outline of folder, notes, buttons (estimated)  |
+| `note`        | `#D8CFBA` | Note-card paper (estimated)                                |
+| `note-glow`   | `#ECE7DC` | Lighter center of note cards (estimated)                   |
+| `type-ink`    | `#1B1F2A` | Text on paper and on aqua buttons (estimated)              |
+| `cream`       | `#EFE8D6` | Text + dashed border on stamps; info-line text (estimated) |
+| `pin`         | `#4A3A2C` | Small pin dot on choose-screen notes (estimated)           |
+| `pushpin`     | `#D0342C` | Red pushpin on result-screen note (estimated)              |
+| `stepper`     | `#22D3D6` | Stepper circles, connectors, labels (estimated)            |
 
 Contrast: aim for WCAG AA. `type-ink` on paper/aqua and `cream` on the stamps pass easily. **Light text on the dark bottom of the folder gradient is only ~4:1** — keep the info line where the gradient is still light enough, or give it a subtle backing (check once real fonts are in).
 
 ### Fonts
 
-| Token            | Font (designer-supplied)          | Used for                                                  |
-| ---------------- | --------------------------------- | --------------------------------------------------------- |
-| `--font-title`   | Fletcher Typewriter Bold, ALL CAPS | Folder headings: the question; result heading            |
-| `--font-button`  | Typer Pro Mono Bold               | SCAN / NEXT / TRY AGAIN; stepper numbers (estimated)      |
-| `--font-body`    | XXII HandTypeWriter               | Paragraphs, bullet list, info line, scanner status        |
-| `--font-note`    | Typewriter Revo                   | Card names on the note cards (both screens)               |
-| `--font-stamp`   | Typewriter Spool CLN Bold         | "ACCOUNT IDENTIFIED" / "NOT QUITE" stamps                 |
+| Token           | Font (designer-supplied)           | Used for                                             |
+| --------------- | ---------------------------------- | ---------------------------------------------------- |
+| `--font-title`  | Fletcher Typewriter Bold, ALL CAPS | Folder headings: the question; result heading        |
+| `--font-button` | Typer Pro Mono Bold                | SCAN / NEXT / TRY AGAIN; stepper numbers (estimated) |
+| `--font-body`   | XXII HandTypeWriter                | Paragraphs, bullet list, info line, scanner status   |
+| `--font-note`   | Typewriter Revo                    | Card names on the note cards (both screens)          |
+| `--font-stamp`  | Typewriter Spool CLN Bold          | "ACCOUNT IDENTIFIED" / "NOT QUITE" stamps            |
 
 - None of these are on Google Fonts. **(PENDING)** The developer supplies licensed `.woff2` files in `public/fonts/`, loaded with `@font-face` in `index.css` (`font-display: swap`). Until a file exists, fall back to `'Courier New', Courier, monospace`. (Section 2 still lists Fredoka/Nunito — update it when the fonts land.)
 - Stepper labels ("Call / Case / Solve") look like a plain sans-serif, not a typewriter — use `system-ui` until told otherwise **(PENDING)**.
 
 ### Type scale (at 1280 wide; scale with `clamp()` below that)
 
-| Element                       | Size   | Notes                                 |
-| ----------------------------- | ------ | ------------------------------------- |
-| Choose question (h1)          | ~36px  | caps, line-height ~1.2, max 2 lines   |
-| Result heading (h1)           | ~30px  | caps, line-height ~1.2                |
-| Note-card label               | ~30px  | centered, line-height ~1.15           |
-| Body / bullets / info line    | ~22px  | line-height ~1.45, max width ~34ch    |
-| Stamp text                    | ~28px  | caps                                  |
-| Button text                   | ~34px  | caps, with a long arrow (⟶ / ⟵)       |
-| Stepper number / label        | ~16px / ~13px |                                |
+| Element                    | Size          | Notes                               |
+| -------------------------- | ------------- | ----------------------------------- |
+| Choose question (h1)       | ~36px         | caps, line-height ~1.2, max 2 lines |
+| Result heading (h1)        | ~30px         | caps, line-height ~1.2              |
+| Note-card label            | ~30px         | centered, line-height ~1.15         |
+| Body / bullets / info line | ~22px         | line-height ~1.45, max width ~34ch  |
+| Stamp text                 | ~28px         | caps                                |
+| Button text                | ~34px         | caps, with a long arrow (⟶ / ⟵)     |
+| Stepper number / label     | ~16px / ~13px |                                     |
 
 ### Shared layout
 
@@ -312,10 +315,11 @@ Contrast: aim for WCAG AA. `type-ink` on paper/aqua and `cream` on the stamps pa
                                                └─────────────────┘
 ```
 
-- h1 = the case question (caps via CSS). Text lives in `cards.ts`, not JSX **(PENDING — needs a new field, see section 4)**.
+- h1 = the case question (caps via CSS). Text lives in `cards.ts` as `CASE_QUESTION`.
 - Notes: one row of 4, ~15–20px gaps, starting ~45px below the question. 2×2 below `lg`.
 - Note labels use the card titles from `cards.ts` ("Savings Account", "Fixed Deposit", …). The mockup's "Fixed Deposit Account" / "Reccuring Deposit Account" wording and its typo are **not** copied **(PENDING)**.
-- **SCAN ⟶ button** **(PENDING — behavior)**: scanning is currently automatic. Guess: SCAN is a real button that turns the camera on; status starts as "Press SCAN, then place your card".
+- **SCAN ⟶ button** is **display-only by design** (decided by the developer) — it does nothing; scanning is automatic. Rendered as `GameButton` without `to`, `aria-hidden`. The live scanner status shows as a small line under "Scan the card in the file".
+- Implemented in `ChoosePage.tsx` with `CaseFolder` (paper folder), `OptionTile` (the notes), `CameraPrompt` (info line + status), `GameButton` (SCAN).
 
 ### Screen 2 — Result (`/result/:cardId`)
 
@@ -335,10 +339,12 @@ Contrast: aim for WCAG AA. `type-ink` on paper/aqua and `cream` on the stamps pa
 ```
 
 - Two columns inside the folder: left ~40% (pinned note of the scanned card, vertically centered), right ~60% (text, starting ~430px into the folder, top ~80px below the folder top). Stack vertically below `lg`.
-- **Correct**: `stamp-green` stamp "✓ ACCOUNT IDENTIFIED"; h1 "YES; IT'S A SAVINGS ACCOUNT!"; paragraph; "A savings account lets her:" + bullet list; **NEXT ⟶ only** → `NEXT_ROUTE`. The old Go Back button is removed **(PENDING)**.
+- **Correct**: `stamp-green` stamp "✓ ACCOUNT IDENTIFIED"; h1 "YES; IT'S A SAVINGS ACCOUNT!"; paragraph; "A savings account lets her:" + bullet list; **NEXT ⟶ only** → `NEXT_ROUTE`. No Go Back button.
 - **Incorrect**: `stamp-red` stamp "✕ NOT QUITE"; h1 "A <CARD TITLE> IS USED WHEN..."; paragraph about that account; paragraph about Ananya; **⟵ TRY AGAIN** (aqua, arrow on the left) → `/`. The old "Good try!" line and the coral colour are removed.
 - No card icon on this screen.
-- All result copy is case-specific and lives in `cards.ts` **(PENDING — new fields in section 4; mockups only give text for Savings and Current Account, the others must be written and approved)**.
+- All result copy is case-specific and lives in `cards.ts` as `RESULT_COPY` (heading, paragraphs, optional list intro + bullets). Savings and Current Account text comes from the mockups; **Fixed Deposit and Recurring Deposit text are drafts marked `DRAFT` — waiting for the developer's approval**. The old `explanation` field on each card is no longer shown.
+- Page titles: "Account identified! · Case File" / "Not quite · Case File".
+- Implemented in `ResultPage.tsx` with `CaseFolder`, `Stamp`, `OptionTile` (`pin="pushpin"`), `GameButton`.
 
 ### Motion
 

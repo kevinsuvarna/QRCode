@@ -1,13 +1,14 @@
 import type { LucideIcon } from 'lucide-react';
 import {
-  ArrowLeft,
-  ArrowRight,
+  MoveLeft,
+  MoveRight,
   Briefcase,
   Camera,
-  CircleCheck,
-  CircleX,
+  Check,
+  X,
   FolderSearch,
   Lock,
+  Pin,
   PiggyBank,
   Repeat,
   RotateCcw,
@@ -25,7 +26,8 @@ export type IconPath =
   | '/icons/cross.svg'
   | '/icons/arrow-right.svg'
   | '/icons/arrow-left.svg'
-  | '/icons/refresh.svg';
+  | '/icons/refresh.svg'
+  | '/icons/pushpin.svg';
 
 // The Lucide icon shown until the real file has been added.
 export const FALLBACK_ICONS: Record<IconPath, LucideIcon> = {
@@ -35,10 +37,11 @@ export const FALLBACK_ICONS: Record<IconPath, LucideIcon> = {
   '/icons/current.svg': Briefcase,
   '/icons/camera.svg': Camera,
   '/icons/case-file.svg': FolderSearch,
-  '/icons/check.svg': CircleCheck,
-  '/icons/cross.svg': CircleX,
-  '/icons/arrow-right.svg': ArrowRight,
-  '/icons/arrow-left.svg': ArrowLeft,
+  '/icons/check.svg': Check,
+  '/icons/cross.svg': X,
+  '/icons/pushpin.svg': Pin,
+  '/icons/arrow-right.svg': MoveRight,
+  '/icons/arrow-left.svg': MoveLeft,
   '/icons/refresh.svg': RotateCcw,
 };
 
