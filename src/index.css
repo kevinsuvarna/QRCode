@@ -1,0 +1,123 @@
+@import 'tailwindcss';
+
+@theme {
+  /* Palette from CLAUDE.md section 9 */
+  --color-ink: #1e1b4b;
+  --color-panel: #2a2760;
+  --color-panel-edge: #3b3785;
+  --color-mint: #5eead4;
+  --color-gold: #fde047;
+  --color-sky: #7dd3fc;
+  --color-lilac: #c4b5fd;
+  --color-coral: #fb7185;
+  --color-snow: #f8fafc;
+
+  /* Darker shades for the chunky 6px "game button" bottom edge */
+  --color-mint-deep: color-mix(in oklab, var(--color-mint) 55%, black);
+  --color-gold-deep: color-mix(in oklab, var(--color-gold) 55%, black);
+  --color-sky-deep: color-mix(in oklab, var(--color-sky) 55%, black);
+  --color-lilac-deep: color-mix(in oklab, var(--color-lilac) 55%, black);
+  --color-coral-deep: color-mix(in oklab, var(--color-coral) 55%, black);
+
+  --font-display: 'Fredoka', system-ui, sans-serif;
+  --font-body: 'Nunito', system-ui, sans-serif;
+}
+
+@layer base {
+  body {
+    background-color: var(--color-ink);
+    color: var(--color-snow);
+    font-family: var(--font-body);
+  }
+}
+
+/* "Game map" background: a soft glow at the top plus a faint dotted grid. CSS only. */
+.game-bg {
+  background-color: var(--color-ink);
+  background-image:
+    radial-gradient(
+      ellipse 80% 60% at 50% 0%,
+      color-mix(in oklab, var(--color-lilac) 16%, transparent),
+      transparent 70%
+    ),
+    radial-gradient(
+      circle,
+      color-mix(in oklab, var(--color-snow) 10%, transparent) 1px,
+      transparent 1.5px
+    );
+  background-size:
+    100% 100%,
+    24px 24px;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes pop-in {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+  20%,
+  60% {
+    transform: translateX(-10px);
+  }
+  40%,
+  80% {
+    transform: translateX(10px);
+  }
+}
+
+@keyframes soft-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.4;
+    transform: scale(0.75);
+  }
+}
+
+/* Animations only run for people who haven't asked their device to reduce motion. */
+@media (prefers-reduced-motion: no-preference) {
+  /* `both` keeps a staggered tile invisible until its delay has passed. */
+  .animate-fade-up {
+    animation: fade-up 450ms ease-out both;
+  }
+
+  .animate-pop-in {
+    animation: pop-in 300ms ease-out both;
+  }
+
+  /* Not-correct card: pop in first, then shake once. */
+  .animate-pop-in-shake {
+    animation:
+      pop-in 300ms ease-out both,
+      shake 400ms ease-in-out 300ms;
+  }
+
+  .animate-soft-pulse {
+    animation: soft-pulse 1.4s ease-in-out infinite;
+  }
+}
